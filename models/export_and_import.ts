@@ -127,7 +127,7 @@ export const EXPORT_AND_IMPORT_FIELD_MAP: Record<string, ExportImportFieldSettin
           return new Date(value + "T00:00:00")
         }
         return new Date(value)
-      } catch (error) {
+      } catch {
         return null
       }
     },
