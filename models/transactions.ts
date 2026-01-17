@@ -189,6 +189,26 @@ export const bulkDeleteTransactions = async (ids: string[], userId: string) => {
   })
 }
 
+export const duplicateTransaction = async (id: string, userId: string): Promise<Transaction> => {
+  const original = await getTransactionById(id, userId)
+  if (!original) {
+    throw new Error("Transaction not found")
+  }
+
+  // Create a copy without id, timestamps, and files
+  const { id: _id, createdAt: _createdAt, updatedAt: _updatedAt, files: _files, ...transactionData } = original
+
+  return await prisma.transaction.create({
+    data: {
+      ...transactionData,
+      name: original.name ? `${original.name} (Copy)` : "Copy",
+      files: [], // Don't copy file references
+      items: original.items as Prisma.InputJsonValue,
+      extra: original.extra as Prisma.InputJsonValue,
+    },
+  })
+}
+
 const splitTransactionDataExtraFields = async (
   data: TransactionData,
   userId: string
