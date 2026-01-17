@@ -110,6 +110,9 @@ model Category {
   name         String
   color        String        @default("#000000")
   llm_prompt   String?
+  parentCode   String?       @map("parent_code")
+  parent       Category?     @relation("CategoryToSubcategory", fields: [parentCode, userId], references: [code, userId], onDelete: SetNull, onUpdate: Cascade)
+  children     Category[]    @relation("CategoryToSubcategory")
   transactions Transaction[]
   createdAt    DateTime      @default(now()) @map("created_at")
 

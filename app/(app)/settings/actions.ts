@@ -195,6 +195,7 @@ export async function addCategoryAction(userId: string, data: Prisma.CategoryCre
       name: validatedForm.data.name,
       llm_prompt: validatedForm.data.llm_prompt,
       color: validatedForm.data.color || "",
+      parentCode: validatedForm.data.parentCode || null,
     })
     revalidatePath("/settings/categories")
 
@@ -221,6 +222,7 @@ export async function editCategoryAction(userId: string, code: string, data: Pri
     name: validatedForm.data.name,
     llm_prompt: validatedForm.data.llm_prompt,
     color: validatedForm.data.color || "",
+    parentCode: validatedForm.data.parentCode || null,
   })
   revalidatePath("/settings/categories")
 

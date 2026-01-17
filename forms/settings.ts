@@ -32,6 +32,7 @@ export const categoryFormSchema = z.object({
   name: z.string().max(128),
   llm_prompt: z.string().max(512).nullable().optional(),
   color: z.string().max(7).default(randomHexColor()).nullable().optional(),
+  parentCode: z.string().max(128).nullable().optional(),
 })
 
 export const fieldFormSchema = z.object({
