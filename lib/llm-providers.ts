@@ -47,4 +47,21 @@ export const PROVIDERS = [
     },
     logo: "/logo/mistral.svg"
   },
+  {
+    key: "ollama",
+    label: "Ollama (Local)",
+    apiKeyName: "ollama_base_url",
+    modelName: "ollama_model_name",
+    defaultModelName: "llava",
+    suggestedModels: ["llava", "llava:13b", "llama3.2-vision", "bakllava"],
+    apiDoc: "https://ollama.ai/download",
+    apiDocLabel: "Ollama Download",
+    placeholder: "http://localhost:11434",
+    help: {
+      url: "https://ollama.ai/library",
+      label: "Ollama Model Library"
+    },
+    logo: "/logo/ollama.svg",
+    isLocal: true
+  },
 ]
