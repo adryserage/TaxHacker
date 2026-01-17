@@ -225,18 +225,25 @@ function SortableProviderBlock({ id, idx, providerKey, value, handleValueChange 
           placeholder="Model name"
         />
       </div>
-      {provider.apiDoc && (
-        <small className="text-muted-foreground">
-          Get your API key from{" "}
-          <a
-            href={provider.apiDoc}
-            target="_blank"
-            className="underline"
-          >
-            {provider.apiDocLabel}
-          </a>
-        </small>
-      )}
+      <div className="flex flex-col gap-1">
+        {provider.apiDoc && (
+          <small className="text-muted-foreground">
+            Get your API key from{" "}
+            <a
+              href={provider.apiDoc}
+              target="_blank"
+              className="underline"
+            >
+              {provider.apiDocLabel}
+            </a>
+          </small>
+        )}
+        {provider.suggestedModels && (
+          <small className="text-muted-foreground">
+            Suggested models: {provider.suggestedModels.join(", ")}
+          </small>
+        )}
+      </div>
     </div>
   )
 }

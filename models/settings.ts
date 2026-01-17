@@ -12,25 +12,27 @@ export function getLLMSettings(settings: SettingsMap) {
   const priorities = (settings.llm_providers || "openai,google,mistral").split(",").map(p => p.trim()).filter(Boolean)
 
   const providers = priorities.map((provider) => {
+    const providerConfig = PROVIDERS.find(p => p.key === provider)
+
     if (provider === "openai") {
       return {
         provider: provider as LLMProvider,
         apiKey: settings.openai_api_key || "",
-        model: settings.openai_model_name || PROVIDERS[0]['defaultModelName'],
+        model: settings.openai_model_name || providerConfig?.defaultModelName || "gpt-4o-mini",
       }
     }
     if (provider === "google") {
       return {
         provider: provider as LLMProvider,
         apiKey: settings.google_api_key || "",
-        model: settings.google_model_name || PROVIDERS[1]['defaultModelName'],
+        model: settings.google_model_name || providerConfig?.defaultModelName || "gemini-2.0-flash",
       }
     }
     if (provider === "mistral") {
       return {
         provider: provider as LLMProvider,
         apiKey: settings.mistral_api_key || "",
-        model: settings.mistral_model_name || PROVIDERS[2]['defaultModelName'],
+        model: settings.mistral_model_name || providerConfig?.defaultModelName || "mistral-medium-latest",
       }
     }
     return null
