@@ -6,6 +6,7 @@ export const settingsFormSchema = z.object({
   default_type: z.string().optional(),
   default_category: z.string().optional(),
   default_project: z.string().optional(),
+  tax_year_start: z.string().max(5).optional(), // Format: "MM-DD", e.g. "04-06" for UK tax year (April 6)
   openai_api_key: z.string().optional(),
   openai_model_name: z.string().default('gpt-4o-mini'),
   google_api_key: z.string().optional(),
