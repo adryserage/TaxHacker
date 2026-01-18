@@ -1,5 +1,14 @@
 "use server"
 
+// File-like interface for form data uploads (avoids runtime File check issues in Node.js)
+interface UploadedFile {
+  name: string
+  size: number
+  type: string
+  lastModified: number
+  arrayBuffer(): Promise<ArrayBuffer>
+}
+
 import { transactionFormSchema } from "@/forms/transactions"
 import { ActionState } from "@/lib/actions"
 import { getCurrentUser, isSubscriptionExpired } from "@/lib/auth"
@@ -125,7 +134,7 @@ export async function deleteTransactionFileAction(
 export async function uploadTransactionFilesAction(formData: FormData): Promise<ActionState<Transaction>> {
   try {
     const transactionId = formData.get("transactionId") as string
-    const files = formData.getAll("files") as File[]
+    const files = formData.getAll("files") as UploadedFile[]
 
     if (!files || !transactionId) {
       return { success: false, error: "No files or transaction ID provided" }

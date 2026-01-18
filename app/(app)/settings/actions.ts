@@ -57,8 +57,8 @@ export async function saveProfileAction(
 
   // Upload avatar
   let avatarUrl = user.avatar
-  const avatarFile = formData.get("avatar") as File | null
-  if (avatarFile instanceof File && avatarFile.size > 0) {
+  const avatarFile = formData.get("avatar")
+  if (avatarFile && typeof avatarFile === "object" && "size" in avatarFile && (avatarFile as Blob).size > 0) {
     try {
       const uploadedAvatarPath = await uploadStaticImage(user, avatarFile, "avatar.webp", 500, 500)
       avatarUrl = `/files/static/${path.basename(uploadedAvatarPath)}`
@@ -69,8 +69,8 @@ export async function saveProfileAction(
 
   // Upload business logo
   let businessLogoUrl = user.businessLogo
-  const businessLogoFile = formData.get("businessLogo") as File | null
-  if (businessLogoFile instanceof File && businessLogoFile.size > 0) {
+  const businessLogoFile = formData.get("businessLogo")
+  if (businessLogoFile && typeof businessLogoFile === "object" && "size" in businessLogoFile && (businessLogoFile as Blob).size > 0) {
     try {
       const uploadedBusinessLogoPath = await uploadStaticImage(user, businessLogoFile, "businessLogo.png", 500, 500)
       businessLogoUrl = `/files/static/${path.basename(uploadedBusinessLogoPath)}`

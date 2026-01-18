@@ -1,0 +1,14 @@
+# Nixpacks configuration for Dokploy
+# Requires Node 20+ for File API and package compatibility
+
+[phases.setup]
+nixPkgs = ["nodejs_22", "npm"]
+
+[phases.install]
+cmds = ["npm ci"]
+
+[phases.build]
+cmds = ["npx prisma generate", "npm run build"]
+
+[start]
+cmd = "npx prisma migrate deploy && npm start"
