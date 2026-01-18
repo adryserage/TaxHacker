@@ -10,7 +10,11 @@
     "dev": "next dev -p 7331 --turbopack",
     "build": "next build",
     "start": "prisma migrate deploy && next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "db:setup": "node scripts/select-schema.js && prisma generate",
+    "db:migrate": "prisma migrate deploy",
+    "db:push": "prisma db push",
+    "postinstall": "node scripts/select-schema.js && prisma generate"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
