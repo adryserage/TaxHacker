@@ -150,12 +150,22 @@ export const getTransactionsByFileId = cache(async (fileId: string, userId: stri
 export const createTransaction = async (userId: string, data: TransactionData): Promise<Transaction> => {
   const { standard, extra } = await splitTransactionDataExtraFields(data, userId)
 
+  // Extract categoryCode and projectCode for proper Prisma relation handling
+  const { categoryCode, projectCode, ...standardWithoutRelations } = standard
+
   return await prisma.transaction.create({
     data: {
-      ...standard,
+      ...standardWithoutRelations,
       extra: prepareJsonField(extra),
       items: prepareJsonField(data.items || []),
       user: { connect: { id: userId } },
+      // Use Prisma connect syntax for composite foreign keys
+      ...(categoryCode
+        ? { category: { connect: { code_userId: { code: categoryCode, userId } } } }
+        : {}),
+      ...(projectCode
+        ? { project: { connect: { code_userId: { code: projectCode, userId } } } }
+        : {}),
     } as unknown as Prisma.TransactionCreateInput,
   })
 }
@@ -163,12 +173,33 @@ export const createTransaction = async (userId: string, data: TransactionData): 
 export const updateTransaction = async (id: string, userId: string, data: TransactionData): Promise<Transaction> => {
   const { standard, extra } = await splitTransactionDataExtraFields(data, userId)
 
+  // Extract categoryCode and projectCode for proper Prisma relation handling
+  const { categoryCode, projectCode, ...standardWithoutRelations } = standard
+
+  // Build category relation update
+  const categoryUpdate =
+    categoryCode !== undefined
+      ? categoryCode
+        ? { category: { connect: { code_userId: { code: categoryCode, userId } } } }
+        : { category: { disconnect: true } }
+      : {}
+
+  // Build project relation update
+  const projectUpdate =
+    projectCode !== undefined
+      ? projectCode
+        ? { project: { connect: { code_userId: { code: projectCode, userId } } } }
+        : { project: { disconnect: true } }
+      : {}
+
   return await prisma.transaction.update({
     where: { id, userId },
     data: {
-      ...standard,
+      ...standardWithoutRelations,
       extra: prepareJsonField(extra),
       items: prepareJsonField(data.items || []),
+      ...categoryUpdate,
+      ...projectUpdate,
     } as unknown as Prisma.TransactionUpdateInput,
   })
 }
@@ -228,14 +259,24 @@ export const duplicateTransaction = async (id: string, userId: string): Promise<
     project?: unknown
   }
 
+  // Extract categoryCode and projectCode for proper Prisma relation handling
+  const { categoryCode, projectCode, ...transactionDataWithoutRelations } = transactionData
+
   return await prisma.transaction.create({
     data: {
-      ...transactionData,
+      ...transactionDataWithoutRelations,
       name: original.name ? `${original.name} (Copy)` : "Copy",
       files: prepareJsonField([]),
       items: original.items,
       extra: original.extra,
       user: { connect: { id: userId } },
+      // Use Prisma connect syntax for composite foreign keys
+      ...(categoryCode
+        ? { category: { connect: { code_userId: { code: categoryCode, userId } } } }
+        : {}),
+      ...(projectCode
+        ? { project: { connect: { code_userId: { code: projectCode, userId } } } }
+        : {}),
     } as unknown as Prisma.TransactionCreateInput,
   })
 }
