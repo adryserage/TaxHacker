@@ -3,6 +3,7 @@ FROM node:23-slim AS base
 # Default environment variables
 ENV PORT=7331
 ENV NODE_ENV=production
+ENV NEXT_TELEMETRY_DISABLED=1
 
 # Build stage
 FROM base AS builder

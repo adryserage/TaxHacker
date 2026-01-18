@@ -9,7 +9,7 @@
   "scripts": {
     "dev": "next dev -p 7331 --turbopack",
     "build": "next build",
-    "start": "prisma migrate deploy && next start",
+    "start": "next start",
     "lint": "next lint",
     "db:setup": "node scripts/select-schema.js && prisma generate",
     "db:migrate": "prisma migrate deploy",
