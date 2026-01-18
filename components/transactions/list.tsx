@@ -4,6 +4,7 @@ import { BulkActionsMenu } from "@/components/transactions/bulk-actions"
 import { Badge } from "@/components/ui/badge"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { parseFilesArray } from "@/lib/db-compat"
 import { calcNetTotalPerCurrency, calcTotalPerCurrency, isTransactionIncomplete } from "@/lib/stats"
 import { cn, formatCurrency } from "@/lib/utils"
 import { Category, Field, Project, Transaction } from "@/prisma/client"
@@ -79,7 +80,7 @@ export const standardFieldRenderers: Record<string, FieldRenderer> = {
     formatValue: (transaction: Transaction) => (
       <div className="flex items-center gap-2 text-sm">
         <File className="w-4 h-4" />
-        {(transaction.files as string[]).length}
+        {parseFilesArray(transaction.files).length}
       </div>
     ),
   },
@@ -259,7 +260,10 @@ export function TransactionList({ transactions, fields = [] }: { transactions: T
 
   const renderFieldInTable = (transaction: Transaction, field: FieldWithRenderer): string | React.ReactNode => {
     if (field.isExtra) {
-      return transaction.extra?.[field.code as keyof typeof transaction.extra] ?? ""
+      const extra = typeof transaction.extra === "string"
+        ? JSON.parse(transaction.extra || "{}")
+        : (transaction.extra || {})
+      return extra[field.code] ?? ""
     } else if (field.renderer.formatValue) {
       return field.renderer.formatValue(transaction)
     } else {

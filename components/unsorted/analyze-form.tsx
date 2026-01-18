@@ -81,14 +81,19 @@ export default function AnalyzeForm({
       {} as Record<string, string>
     )
 
-    // Load cached results if they exist
-    const cachedResults = file.cachedParseResult
-      ? Object.fromEntries(
-          Object.entries(file.cachedParseResult as Record<string, string>).filter(
-            ([_, value]) => value !== null && value !== undefined && value !== ""
-          )
+    // Load cached results if they exist (handle string for SQLite, object for PostgreSQL)
+    const parseCachedResult = () => {
+      if (!file.cachedParseResult) return {}
+      const parsed = typeof file.cachedParseResult === "string"
+        ? JSON.parse(file.cachedParseResult)
+        : file.cachedParseResult
+      return Object.fromEntries(
+        Object.entries(parsed as Record<string, string>).filter(
+          ([_, value]) => value !== null && value !== undefined && value !== ""
         )
-      : {}
+      )
+    }
+    const cachedResults = parseCachedResult()
 
     return {
       ...baseState,

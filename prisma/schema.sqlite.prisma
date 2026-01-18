@@ -110,6 +110,9 @@ model Category {
   name         String
   color        String        @default("#000000")
   llm_prompt   String?
+  parentCode   String?       @map("parent_code")
+  parent       Category?     @relation("CategoryToSubcategory", fields: [parentCode, userId], references: [code, userId], onDelete: Cascade, onUpdate: Cascade)
+  children     Category[]    @relation("CategoryToSubcategory")
   transactions Transaction[]
   createdAt    DateTime      @default(now()) @map("created_at")
 
@@ -146,6 +149,7 @@ model Field {
   isVisibleInAnalysis Boolean  @default(false) @map("is_visible_in_analysis")
   isRequired          Boolean  @default(false) @map("is_required")
   isExtra             Boolean  @default(true) @map("is_extra")
+  order               Int      @default(0)
 
   @@unique([userId, code])
   @@map("fields")

@@ -12,6 +12,7 @@ interface UploadedFile {
 import { transactionFormSchema } from "@/forms/transactions"
 import { ActionState } from "@/lib/actions"
 import { getCurrentUser, isSubscriptionExpired } from "@/lib/auth"
+import { parseFilesArray } from "@/lib/db-compat"
 import {
   getDirectorySize,
   getTransactionFileUploadPath,
@@ -116,10 +117,11 @@ export async function deleteTransactionFileAction(
     return { success: false, error: "Transaction not found" }
   }
 
+  const currentFiles = parseFilesArray(transaction.files)
   await updateTransactionFiles(
     transactionId,
     user.id,
-    transaction.files ? (transaction.files as string[]).filter((id) => id !== fileId) : []
+    currentFiles.filter((id) => id !== fileId)
   )
 
   await deleteFile(fileId, user.id)
@@ -192,12 +194,11 @@ export async function uploadTransactionFilesAction(formData: FormData): Promise<
     )
 
     // Update invoice with the new file ID
+    const existingFiles = parseFilesArray(transaction.files)
     await updateTransactionFiles(
       transactionId,
       user.id,
-      transaction.files
-        ? [...(transaction.files as string[]), ...fileRecords.map((file) => file.id)]
-        : fileRecords.map((file) => file.id)
+      [...existingFiles, ...fileRecords.map((file) => file.id)]
     )
 
     // Update user storage used
