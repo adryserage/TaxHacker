@@ -475,6 +475,59 @@ export async function importBankTransactions(
   }
 }
 
+/**
+ * Import all ready (non-imported) bank statements at once.
+ * Skips statements that are already imported.
+ */
+export async function importAllBankStatements(
+  options?: {
+    skipDuplicates?: boolean
+  }
+): Promise<ActionState<{ totalImported: number; totalSkipped: number; statementCount: number }>> {
+  const user = await getCurrentUser()
+
+  // Get all statements that are ready but not yet imported
+  const allStatements = await getBankStatements(user.id)
+  const readyStatements = allStatements.filter((s) => s.status === "ready")
+
+  if (readyStatements.length === 0) {
+    return {
+      success: true,
+      data: {
+        totalImported: 0,
+        totalSkipped: 0,
+        statementCount: 0,
+      },
+    }
+  }
+
+  let totalImported = 0
+  let totalSkipped = 0
+  let processedCount = 0
+
+  // Process each statement sequentially
+  for (const statement of readyStatements) {
+    const result = await importBankTransactions(statement.id, undefined, {
+      skipDuplicates: options?.skipDuplicates ?? true,
+    })
+
+    if (result.success && result.data) {
+      totalImported += result.data.importedCount
+      totalSkipped += result.data.skippedDuplicates
+      processedCount++
+    }
+  }
+
+  return {
+    success: true,
+    data: {
+      totalImported,
+      totalSkipped,
+      statementCount: processedCount,
+    },
+  }
+}
+
 // ============================================================================
 // Delete Action
 // ============================================================================
