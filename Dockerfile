@@ -8,8 +8,9 @@ ENV NEXT_TELEMETRY_DISABLED=1
 # Build stage
 FROM base AS builder
 
-# Install dependencies required for Prisma
-RUN apt-get update && apt-get install -y openssl
+# Install dependencies required for Prisma and update npm
+RUN apt-get update && apt-get install -y openssl \
+    && npm install -g npm@11
 
 WORKDIR /app
 

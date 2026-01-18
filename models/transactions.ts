@@ -131,12 +131,13 @@ export const getTransactionById = cache(async (id: string, userId: string): Prom
 
 export const getTransactionsByFileId = cache(async (fileId: string, userId: string): Promise<Transaction[]> => {
   if (isSQLite) {
-    // SQLite: files is stored as JSON string, use contains
+    // SQLite: files is stored as JSON string, use string_contains
+    // Type assertion needed because Prisma generates different types based on schema
     return await prisma.transaction.findMany({
       where: {
-        files: { contains: fileId },
+        files: { string_contains: fileId },
         userId,
-      },
+      } as Prisma.TransactionWhereInput,
     })
   }
   // PostgreSQL: use native JSON array_contains
