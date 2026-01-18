@@ -168,13 +168,16 @@ async function processBankStatement(statementId: string, userId: string): Promis
       throw new Error("User not found")
     }
 
+    // Get user settings for default currency
+    const settings = await getSettings(userId)
+    const defaultCurrency = settings.default_currency || "EUR"
+
     let result
     if (statement.mimetype === "text/csv" || statement.path.endsWith(".csv")) {
-      // Parse CSV
-      result = await parseCSV(statement.path)
+      // Parse CSV with user's default currency
+      result = await parseCSV(statement.path, undefined, defaultCurrency)
     } else {
       // Parse PDF with LLM
-      const settings = await getSettings(userId)
       const llmSettings = getLLMSettings(settings)
 
       const validation = await validateLLMSettings(llmSettings)
@@ -182,7 +185,7 @@ async function processBankStatement(statementId: string, userId: string): Promis
         throw new Error(validation.error)
       }
 
-      result = await parsePDF(user, statement.path, llmSettings)
+      result = await parsePDF(user, statement.path, llmSettings, defaultCurrency)
     }
 
     if (!result.success || !result.data) {
@@ -353,8 +356,12 @@ export async function mapCSVColumns(
     return { success: false, error: "Column mapping only applies to CSV files" }
   }
 
-  // Re-parse with new mapping
-  const result = await parseCSV(statement.path, mapping)
+  // Get user's default currency from settings
+  const settings = await getSettings(user.id)
+  const defaultCurrency = settings.default_currency || "EUR"
+
+  // Re-parse with new mapping and user's default currency
+  const result = await parseCSV(statement.path, mapping, defaultCurrency)
   if (!result.success || !result.data) {
     return { success: false, error: result.error || "Parsing failed" }
   }
