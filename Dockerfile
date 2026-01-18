@@ -23,8 +23,8 @@ RUN npm ci
 # Copy source code
 COPY . .
 
-# Build the application
-RUN npm run build
+# Disable Next.js telemetry and build
+RUN npx next telemetry disable && npm run build
 
 # Production stage
 FROM base

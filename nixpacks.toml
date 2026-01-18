@@ -13,7 +13,7 @@ nixPkgs = ["nodejs_22", "openssl"]
 cmds = ["npm ci"]
 
 [phases.build]
-cmds = ["node scripts/select-schema.js", "npx prisma generate", "npm run build"]
+cmds = ["node scripts/select-schema.js", "npx prisma generate", "npx next telemetry disable", "npm run build"]
 
 [start]
 cmd = "node scripts/select-schema.js && npx prisma generate && (echo $DATABASE_URL | grep -q '^file:' && npx prisma db push --accept-data-loss || npx prisma migrate deploy) && npm start"
