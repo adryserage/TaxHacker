@@ -8,6 +8,10 @@ ENV NEXT_TELEMETRY_DISABLED=1
 # Build stage
 FROM base AS builder
 
+# Build argument for database provider (sqlite or postgresql)
+ARG DATABASE_PROVIDER=sqlite
+ENV DATABASE_PROVIDER=${DATABASE_PROVIDER}
+
 # Install dependencies required for Prisma and update npm
 RUN apt-get update && apt-get install -y openssl \
     && npm install -g npm@11
@@ -20,12 +24,13 @@ COPY prisma ./prisma/
 COPY scripts ./scripts/
 
 # Install dependencies (postinstall runs select-schema.js + prisma generate)
+# DATABASE_PROVIDER env var controls which schema is selected
 RUN npm ci
 
 # Copy source code
 COPY . .
 
-# Disable Next.js telemetry and build
+# Disable Next.js telemetry and build with correct schema
 RUN npx next telemetry disable && npm run build
 
 # Production stage
