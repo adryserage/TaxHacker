@@ -51,8 +51,8 @@ export const getBankStatements = cache(
 
     if (filters?.search) {
       where.OR = [
-        { filename: { contains: filters.search, mode: "insensitive" } },
-        { bankName: { contains: filters.search, mode: "insensitive" } },
+        { filename: { contains: filters.search } },
+        { bankName: { contains: filters.search } },
       ]
     }
 
