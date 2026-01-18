@@ -13,11 +13,12 @@ RUN apt-get update && apt-get install -y openssl
 
 WORKDIR /app
 
-# Copy package files
+# Copy package files and scripts needed for postinstall
 COPY package*.json ./
 COPY prisma ./prisma/
+COPY scripts ./scripts/
 
-# Install dependencies
+# Install dependencies (postinstall runs select-schema.js + prisma generate)
 RUN npm ci
 
 # Copy source code
