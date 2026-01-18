@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/sidebar"
 import { UserProfile } from "@/lib/auth"
 import config from "@/lib/config"
-import { ClockArrowUp, FileText, Gift, House, Import, LayoutDashboard, Settings, Upload } from "lucide-react"
+import { ClockArrowUp, FileSpreadsheet, FileText, Gift, House, Import, LayoutDashboard, Settings, Upload } from "lucide-react"
 import Image from "next/image"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
@@ -103,6 +103,15 @@ export function AppSidebar({
                       )}
                       {notification && notification.code === "sidebar.unsorted" && notification.message && <Blinker />}
                       <span></span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItemWithHighlight>
+
+                <SidebarMenuItemWithHighlight href="/bank-statements">
+                  <SidebarMenuButton asChild>
+                    <Link href="/bank-statements">
+                      <FileSpreadsheet />
+                      <span>Bank Statements</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItemWithHighlight>
