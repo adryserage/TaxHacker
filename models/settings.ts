@@ -35,6 +35,13 @@ export function getLLMSettings(settings: SettingsMap) {
         model: settings.mistral_model_name || providerConfig?.defaultModelName || "mistral-medium-latest",
       }
     }
+    if (provider === "ollama") {
+      return {
+        provider: provider as LLMProvider,
+        apiKey: settings.ollama_base_url || "http://localhost:11434", // Base URL, not API key
+        model: settings.ollama_model_name || providerConfig?.defaultModelName || "llava",
+      }
+    }
     return null
   }).filter((provider): provider is NonNullable<typeof provider> => provider !== null)
 

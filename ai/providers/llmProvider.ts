@@ -3,7 +3,7 @@ import { ChatGoogleGenerativeAI } from "@langchain/google-genai"
 import { ChatMistralAI } from "@langchain/mistralai"
 import { BaseMessage, HumanMessage } from "@langchain/core/messages"
 
-export type LLMProvider = "openai" | "google" | "mistral"
+export type LLMProvider = "openai" | "google" | "mistral" | "ollama"
 
 export interface LLMConfig {
   provider: LLMProvider
@@ -33,6 +33,7 @@ const VALID_MODELS: Record<LLMProvider, string[]> = {
   openai: ["gpt-4o", "gpt-4o-mini", "gpt-4-turbo", "gpt-4", "gpt-3.5-turbo"],
   google: ["gemini-2.0-flash", "gemini-2.0-flash-lite", "gemini-1.5-flash", "gemini-1.5-pro", "gemini-2.5-flash"],
   mistral: ["mistral-large-latest", "mistral-medium-latest", "mistral-small-latest", "open-mistral-nemo"],
+  ollama: ["llava", "llava:13b", "llama3.2-vision", "bakllava", "moondream"],
 }
 
 function formatModelError(provider: LLMProvider, model: string, originalError: string): string {
@@ -84,6 +85,18 @@ async function requestLLMUnified(config: LLMConfig, req: LLMRequest): Promise<LL
     } else if (config.provider === "mistral") {
       model = new ChatMistralAI({
         apiKey: config.apiKey,
+        model: config.model,
+        temperature: temperature,
+      })
+    } else if (config.provider === "ollama") {
+      // Ollama uses OpenAI-compatible API
+      // config.apiKey contains the base URL (e.g., http://localhost:11434)
+      const baseUrl = config.apiKey.endsWith("/") ? config.apiKey.slice(0, -1) : config.apiKey
+      model = new ChatOpenAI({
+        configuration: {
+          baseURL: `${baseUrl}/v1`,
+        },
+        apiKey: "ollama", // Ollama doesn't require a real API key
         model: config.model,
         temperature: temperature,
       })
