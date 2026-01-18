@@ -14,7 +14,7 @@ import { uploadStaticImage } from "@/lib/uploads"
 import { codeFromName, randomHexColor } from "@/lib/utils"
 import { createCategory, deleteCategory, updateCategory } from "@/models/categories"
 import { createCurrency, deleteCurrency, updateCurrency } from "@/models/currencies"
-import { createField, deleteField, updateField } from "@/models/fields"
+import { createField, deleteField, updateField, updateFieldOrders } from "@/models/fields"
 import { createProject, deleteProject, updateProject } from "@/models/projects"
 import { SettingsMap, updateSettings } from "@/models/settings"
 import { updateUser } from "@/models/users"
@@ -287,4 +287,18 @@ export async function deleteFieldAction(userId: string, code: string) {
   }
   revalidatePath("/settings/fields")
   return { success: true }
+}
+
+export async function reorderFieldsAction(
+  fieldOrders: { code: string; order: number }[]
+): Promise<ActionState<void>> {
+  try {
+    const user = await getCurrentUser()
+    await updateFieldOrders(user.id, fieldOrders)
+    revalidatePath("/settings/fields")
+    return { success: true }
+  } catch (error) {
+    console.error("Failed to reorder fields:", error)
+    return { success: false, error: "Failed to reorder fields" }
+  }
 }

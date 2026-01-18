@@ -146,6 +146,7 @@ model Field {
   isVisibleInAnalysis Boolean  @default(false) @map("is_visible_in_analysis")
   isRequired          Boolean  @default(false) @map("is_required")
   isExtra             Boolean  @default(true) @map("is_extra")
+  order               Int      @default(0)
 
   @@unique([userId, code])
   @@map("fields")
