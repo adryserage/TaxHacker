@@ -40,6 +40,7 @@ model User {
   sessions            Session[]
   appData             AppData[]
   progress            Progress[]
+  bankStatements      BankStatement[]
 
   @@map("users")
 }
@@ -195,8 +196,15 @@ model Transaction {
   createdAt             DateTime  @default(now()) @map("created_at")
   updatedAt             DateTime  @updatedAt @map("updated_at")
   text                  String?
+  // Bank import tracking
+  sourceType            String?   @map("source_type")
+  sourceId              String?   @map("source_id")
+  transactionHash       String?   @map("transaction_hash")
+  linkedTransactionId   String?   @map("linked_transaction_id")
 
   @@index([userId])
+  @@index([sourceType])
+  @@index([transactionHash])
   @@index([projectCode])
   @@index([categoryCode])
   @@index([issuedAt])
@@ -240,4 +248,33 @@ model Progress {
 
   @@index([userId])
   @@map("progress")
+}
+
+model BankStatement {
+  id               String    @id @default(uuid())
+  userId           String    @map("user_id")
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // File information
+  filename         String
+  path             String
+  mimetype         String
+  fileSize         Int       @map("file_size")
+  // Statement metadata (extracted or user-provided)
+  bankName         String?   @map("bank_name")
+  accountNumber    String?   @map("account_number")
+  periodStart      DateTime? @map("period_start")
+  periodEnd        DateTime? @map("period_end")
+  // Processing
+  status           String    @default("pending")
+  extractedData    String?   @map("extracted_data")
+  transactionCount Int       @default(0) @map("transaction_count")
+  errorMessage     String?   @map("error_message")
+  // Timestamps
+  createdAt        DateTime  @default(now()) @map("created_at")
+  processedAt      DateTime? @map("processed_at")
+  importedAt       DateTime? @map("imported_at")
+
+  @@index([userId])
+  @@index([status])
+  @@map("bank_statements")
 }
