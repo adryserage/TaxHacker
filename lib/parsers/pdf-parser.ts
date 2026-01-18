@@ -3,6 +3,7 @@
 import { loadFileAsBase64 } from "@/ai/attachments"
 import { requestLLM, LLMSettings } from "@/ai/providers/llmProvider"
 import { generateFilePreviews } from "@/lib/previews/generate"
+import { User } from "@/prisma/client"
 import { ExtractedData, ExtractedTransaction, ParseResult } from "./types"
 import {
   calculateSummary,
@@ -95,11 +96,13 @@ Return the data in the specified JSON format.`
 /**
  * Parse a PDF bank statement using LLM vision.
  *
+ * @param user - User for preview generation
  * @param filePath - Path to the PDF file
  * @param llmSettings - LLM configuration from user settings
  * @param defaultCurrency - Default currency code
  */
 export async function parsePDF(
+  user: User,
   filePath: string,
   llmSettings: LLMSettings,
   defaultCurrency: string = "EUR"
@@ -107,7 +110,7 @@ export async function parsePDF(
   try {
     // Generate image previews of PDF pages
     const { contentType, previews } = await generateFilePreviews(
-      null as any, // User context not needed for preview generation
+      user,
       filePath,
       "application/pdf"
     )
@@ -191,7 +194,15 @@ export async function parsePDF(
     // Include bank metadata if extracted
     if (output.bankName || output.accountNumber || output.statementPeriod) {
       // This metadata can be stored in BankStatement model
-      ;(extractedData as any).metadata = {
+      type ExtractedDataWithMetadata = ExtractedData & {
+        metadata?: {
+          bankName?: string
+          accountNumber?: string
+          periodStart?: string
+          periodEnd?: string
+        }
+      }
+      ;(extractedData as ExtractedDataWithMetadata).metadata = {
         bankName: output.bankName,
         accountNumber: output.accountNumber,
         periodStart: output.statementPeriod?.startDate,
@@ -212,7 +223,7 @@ export async function parsePDF(
 /**
  * Validate that LLM settings are configured for PDF parsing.
  */
-export function validateLLMSettings(llmSettings: LLMSettings): { valid: boolean; error?: string } {
+export async function validateLLMSettings(llmSettings: LLMSettings): Promise<{ valid: boolean; error?: string }> {
   const configuredProviders = llmSettings.providers.filter((p) => p.apiKey && p.model)
 
   if (configuredProviders.length === 0) {

@@ -162,6 +162,12 @@ async function processBankStatement(statementId: string, userId: string): Promis
       throw new Error("Statement not found")
     }
 
+    // Get user for PDF preview generation
+    const user = await prisma.user.findUnique({ where: { id: userId } })
+    if (!user) {
+      throw new Error("User not found")
+    }
+
     let result
     if (statement.mimetype === "text/csv" || statement.path.endsWith(".csv")) {
       // Parse CSV
@@ -171,12 +177,12 @@ async function processBankStatement(statementId: string, userId: string): Promis
       const settings = await getSettings(userId)
       const llmSettings = getLLMSettings(settings)
 
-      const validation = validateLLMSettings(llmSettings)
+      const validation = await validateLLMSettings(llmSettings)
       if (!validation.valid) {
         throw new Error(validation.error)
       }
 
-      result = await parsePDF(statement.path, llmSettings)
+      result = await parsePDF(user, statement.path, llmSettings)
     }
 
     if (!result.success || !result.data) {

@@ -153,7 +153,8 @@ export function autoDetectColumnMapping(headers: string[]): CSVColumnMapping | n
 
   // Also check for split debit/credit columns
   const debitIdx = lowerHeaders.findIndex((h) => h.includes("debit") || h.includes("withdrawal"))
-  const creditIdx = lowerHeaders.findIndex((h) => h.includes("credit") || h.includes("deposit"))
+  // Note: creditIdx can be computed similarly for split column handling:
+  // const creditIdx = lowerHeaders.findIndex((h) => h.includes("credit") || h.includes("deposit"))
 
   if (dateColumn === undefined || (amountColumn === undefined && debitIdx === -1)) {
     return null // Can't auto-detect required columns
