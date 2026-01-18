@@ -40,15 +40,21 @@ if [ "$DATABASE_PROVIDER" = "sqlite" ]; then
 
 else
   # PostgreSQL: Wait for server and run migrations
-  # Extract server part from DATABASE_URL (remove database name)
-  SERVER_URL=$(echo "$DATABASE_URL" | sed 's/\/[^/]*$//')
 
-  echo "Waiting for PostgreSQL server to be ready at $SERVER_URL..."
-  until psql "$SERVER_URL" -c '\q' >/dev/null 2>&1; do
-    echo "PostgreSQL server is unavailable - sleeping"
-    sleep 1
-  done
-  echo "PostgreSQL server is ready!"
+  # Skip database check if SKIP_DB_CHECK is set
+  if [ "$SKIP_DB_CHECK" = "true" ]; then
+    echo "Skipping database readiness check (SKIP_DB_CHECK=true)"
+  else
+    # Extract server part from DATABASE_URL (remove database name)
+    SERVER_URL=$(echo "$DATABASE_URL" | sed 's/\/[^/]*$//')
+
+    echo "Waiting for PostgreSQL server to be ready at $SERVER_URL..."
+    until psql "$SERVER_URL" -c '\q' >/dev/null 2>&1; do
+      echo "PostgreSQL server is unavailable - sleeping"
+      sleep 1
+    done
+    echo "PostgreSQL server is ready!"
+  fi
 
   # Run database migrations
   echo "Generating Prisma client..."
