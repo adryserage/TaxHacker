@@ -25,6 +25,7 @@ import {
   bulkDeleteTransactions,
   createTransaction,
   deleteTransaction,
+  duplicateTransaction,
   getTransactionById,
   updateTransaction,
   updateTransactionFiles,
@@ -233,5 +234,20 @@ export async function updateFieldVisibilityAction(fieldCode: string, isVisible: 
   } catch (error) {
     console.error("Failed to update field visibility:", error)
     return { success: false, error: "Failed to update field visibility" }
+  }
+}
+
+export async function duplicateTransactionAction(
+  transactionId: string
+): Promise<ActionState<Transaction>> {
+  try {
+    const user = await getCurrentUser()
+    const newTransaction = await duplicateTransaction(transactionId, user.id)
+
+    revalidatePath("/transactions")
+    return { success: true, data: newTransaction }
+  } catch (error) {
+    console.error("Failed to duplicate transaction:", error)
+    return { success: false, error: "Failed to duplicate transaction" }
   }
 }
