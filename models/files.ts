@@ -1,7 +1,7 @@
 "use server"
 
 import { prisma } from "@/lib/db"
-import { parseFilesArray } from "@/lib/db-compat"
+import { parseFilesArray, prepareJsonField } from "@/lib/db-compat"
 import { unlink } from "fs/promises"
 import path from "path"
 import { cache } from "react"
@@ -53,18 +53,32 @@ export const getFilesByTransactionId = cache(async (id: string, userId: string) 
 })
 
 export const createFile = async (userId: string, data: any) => {
+  // Prepare JSON fields for storage (stringify for SQLite)
+  const preparedData = {
+    ...data,
+    userId,
+    metadata: data.metadata ? prepareJsonField(data.metadata) : null,
+    cachedParseResult: data.cachedParseResult ? prepareJsonField(data.cachedParseResult) : null,
+  }
+
   return await prisma.file.create({
-    data: {
-      ...data,
-      userId,
-    },
+    data: preparedData,
   })
 }
 
 export const updateFile = async (id: string, userId: string, data: any) => {
+  // Prepare JSON fields for storage (stringify for SQLite)
+  const preparedData = { ...data }
+  if (preparedData.metadata !== undefined) {
+    preparedData.metadata = preparedData.metadata ? prepareJsonField(preparedData.metadata) : null
+  }
+  if (preparedData.cachedParseResult !== undefined) {
+    preparedData.cachedParseResult = preparedData.cachedParseResult ? prepareJsonField(preparedData.cachedParseResult) : null
+  }
+
   return await prisma.file.update({
     where: { id, userId },
-    data,
+    data: preparedData,
   })
 }
 

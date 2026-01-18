@@ -10,6 +10,7 @@ import { FormSelectProject } from "@/components/forms/select-project"
 import { FormSelectType } from "@/components/forms/select-type"
 import { FormInput, FormTextarea } from "@/components/forms/simple"
 import { Button } from "@/components/ui/button"
+import { parseItemsArray, parseJsonObject } from "@/lib/db-compat"
 import { TransactionData } from "@/models/transactions"
 import { Category, Currency, Field, Project, Transaction } from "@/prisma/client"
 import { format } from "date-fns"
@@ -37,6 +38,8 @@ export default function TransactionEditForm({
   const [saveState, saveAction, isSaving] = useActionState(saveTransactionAction, null)
 
   const extraFields = fields.filter((field) => field.isExtra)
+  const parsedItems = parseItemsArray<TransactionData>(transaction.items)
+  const parsedExtra = parseJsonObject<Record<string, unknown>>(transaction.extra)
   const [formData, setFormData] = useState({
     name: transaction.name || "",
     merchant: transaction.merchant || "",
@@ -50,10 +53,10 @@ export default function TransactionEditForm({
     projectCode: transaction.projectCode || settings.default_project,
     issuedAt: transaction.issuedAt ? format(transaction.issuedAt, "yyyy-MM-dd") : "",
     note: transaction.note || "",
-    items: transaction.items || [],
+    items: parsedItems,
     ...extraFields.reduce(
       (acc, field) => {
-        acc[field.code] = transaction.extra?.[field.code as keyof typeof transaction.extra] || ""
+        acc[field.code] = parsedExtra?.[field.code] || ""
         return acc
       },
       {} as Record<string, any>
