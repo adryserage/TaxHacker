@@ -9,6 +9,7 @@ import {
   getPaginationParams,
   getDateRangeParams,
   getProjectFilter,
+  getApiKeyProjectCodes,
   ApiContext,
 } from "@/lib/api-auth"
 import { hasScope } from "@/models/api-keys"
@@ -31,9 +32,12 @@ export const GET = withApiAuth(
 
     if (projectCode) {
       where.projectCode = projectCode
-    } else if (apiKey.projectCodes) {
+    } else {
       // If API key has project restrictions, only return those
-      where.projectCode = { in: apiKey.projectCodes as string[] }
+      const restrictedCodes = getApiKeyProjectCodes(apiKey)
+      if (restrictedCodes) {
+        where.projectCode = { in: restrictedCodes }
+      }
     }
 
     if (from || to) {

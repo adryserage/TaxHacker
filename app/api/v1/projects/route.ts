@@ -5,6 +5,7 @@ import {
   apiResponse,
   apiError,
   getPaginationParams,
+  getApiKeyProjectCodes,
   ApiContext,
 } from "@/lib/api-auth"
 import { hasScope } from "@/models/api-keys"
@@ -19,8 +20,9 @@ export const GET = withApiAuth(
     const where: Record<string, unknown> = { userId }
 
     // If API key has project restrictions, only return those
-    if (apiKey.projectCodes) {
-      where.code = { in: apiKey.projectCodes as string[] }
+    const projectCodes = getApiKeyProjectCodes(apiKey)
+    if (projectCodes) {
+      where.code = { in: projectCodes }
     }
 
     // Get projects

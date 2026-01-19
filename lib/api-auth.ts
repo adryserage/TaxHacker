@@ -139,3 +139,36 @@ export function getProjectFilter(request: NextRequest): string | undefined {
   const url = new URL(request.url)
   return url.searchParams.get("project") || undefined
 }
+
+/**
+ * Parse projectCodes from ApiKey (handles JSON string for SQLite and array for PostgreSQL)
+ */
+export function getApiKeyProjectCodes(apiKey: ApiKey): string[] | null {
+  if (!apiKey.projectCodes) return null
+  if (Array.isArray(apiKey.projectCodes)) return apiKey.projectCodes as string[]
+  if (typeof apiKey.projectCodes === "string") {
+    try {
+      const parsed = JSON.parse(apiKey.projectCodes)
+      return Array.isArray(parsed) ? parsed : null
+    } catch {
+      return null
+    }
+  }
+  return null
+}
+
+/**
+ * Parse scopes from ApiKey (handles JSON string for SQLite and array for PostgreSQL)
+ */
+export function getApiKeyScopes(apiKey: ApiKey): string[] {
+  if (Array.isArray(apiKey.scopes)) return apiKey.scopes as string[]
+  if (typeof apiKey.scopes === "string") {
+    try {
+      const parsed = JSON.parse(apiKey.scopes)
+      return Array.isArray(parsed) ? parsed : []
+    } catch {
+      return []
+    }
+  }
+  return []
+}
