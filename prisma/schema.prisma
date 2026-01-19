@@ -41,6 +41,9 @@ model User {
   appData             AppData[]
   progress            Progress[]
   bankStatements      BankStatement[]
+  // Team relationships
+  teamOwned           TeamMember[]  @relation("TeamOwner")   // Teams this user owns
+  teamMemberships     TeamMember[]  @relation("TeamMember")  // Teams this user is a member of
 
   @@map("users")
 }
@@ -294,4 +297,33 @@ model BankStatement {
   @@index([userId])
   @@index([status])
   @@map("bank_statements")
+}
+
+// Team member model for multi-user access
+// Allows users to grant access to their account to other users
+model TeamMember {
+  id         String    @id @default(uuid()) @db.Uuid
+  // The account owner (whose data this team member can access)
+  ownerId    String    @map("owner_id") @db.Uuid
+  owner      User      @relation("TeamOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  // The team member user
+  memberId   String    @map("member_id") @db.Uuid
+  member     User      @relation("TeamMember", fields: [memberId], references: [id], onDelete: Cascade)
+  // Role determines access level
+  // - owner: Full access including team management
+  // - accountant: Can view/edit transactions, create invoices, view reports
+  // - viewer: Read-only access to transactions and reports
+  role       String    @default("viewer")
+  // Optional: restrict to specific projects (null = all projects)
+  // JSON array of project codes, e.g. ["project-1", "project-2"]
+  projectCodes Json?   @map("project_codes")
+  // Invitation status
+  status     String    @default("pending") // pending, active, revoked
+  invitedAt  DateTime  @default(now()) @map("invited_at")
+  acceptedAt DateTime? @map("accepted_at")
+
+  @@unique([ownerId, memberId])
+  @@index([memberId])
+  @@index([ownerId])
+  @@map("team_members")
 }

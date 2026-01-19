@@ -21,6 +21,10 @@ const baseSettingsCategories = [
     title: "Business Details",
     href: "/settings/business",
   },
+  {
+    title: "Team",
+    href: "/settings/team",
+  },
 ]
 
 // LLM settings only shown in self-hosted mode
