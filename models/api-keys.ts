@@ -1,7 +1,40 @@
 import { prisma } from "@/lib/db"
-import { ApiKey, Prisma } from "@/prisma/client"
+import { ApiKey } from "@/prisma/client"
 import { createHash, randomBytes } from "crypto"
 import { cache } from "react"
+
+/**
+ * Parse scopes from ApiKey (handles both JSON string for SQLite and array for PostgreSQL)
+ */
+function parseScopes(scopes: unknown): string[] {
+  if (Array.isArray(scopes)) return scopes as string[]
+  if (typeof scopes === "string") {
+    try {
+      const parsed = JSON.parse(scopes)
+      return Array.isArray(parsed) ? parsed : []
+    } catch {
+      return []
+    }
+  }
+  return []
+}
+
+/**
+ * Parse projectCodes from ApiKey (handles both JSON string for SQLite and array for PostgreSQL)
+ */
+function parseProjectCodes(projectCodes: unknown): string[] | null {
+  if (!projectCodes) return null
+  if (Array.isArray(projectCodes)) return projectCodes as string[]
+  if (typeof projectCodes === "string") {
+    try {
+      const parsed = JSON.parse(projectCodes)
+      return Array.isArray(parsed) ? parsed : null
+    } catch {
+      return null
+    }
+  }
+  return null
+}
 
 // API Scopes
 export const API_SCOPES = {
@@ -43,14 +76,15 @@ export async function createApiKey(
   const keyHash = createHash("sha256").update(fullKey).digest("hex")
   const keyPrefix = fullKey.substring(0, 12) // "th_live_xxxx"
 
+  // Use 'as never' to handle both PostgreSQL (Json type) and SQLite (String type)
   const apiKey = await prisma.apiKey.create({
     data: {
       userId,
       name,
       keyHash,
       keyPrefix,
-      scopes: scopes,
-      projectCodes: options?.projectCodes ?? Prisma.JsonNull,
+      scopes: scopes as never,
+      projectCodes: (options?.projectCodes ?? null) as never,
       expiresAt: options?.expiresAt ?? null,
       rateLimit: options?.rateLimit ?? 1000,
     },
@@ -108,7 +142,7 @@ export async function validateApiKey(
  * Check if an API key has a specific scope
  */
 export function hasScope(apiKey: ApiKey, scope: ApiScope): boolean {
-  const scopes = apiKey.scopes as string[]
+  const scopes = parseScopes(apiKey.scopes)
   return scopes.includes(scope) || scopes.includes("*")
 }
 
@@ -116,10 +150,10 @@ export function hasScope(apiKey: ApiKey, scope: ApiScope): boolean {
  * Check if an API key has access to a specific project
  */
 export function hasProjectAccess(apiKey: ApiKey, projectCode: string): boolean {
-  if (apiKey.projectCodes === null) {
+  const codes = parseProjectCodes(apiKey.projectCodes)
+  if (codes === null) {
     return true // No restriction
   }
-  const codes = apiKey.projectCodes as string[]
   return codes.includes(projectCode)
 }
 
@@ -218,14 +252,18 @@ export async function updateApiKey(
     return { success: false, error: "Not authorized" }
   }
 
+  // Use 'as never' to handle both PostgreSQL (Json type) and SQLite (String type)
+  const scopesValue = updates.scopes ?? parseScopes(apiKey.scopes)
+  const projectCodesValue = updates.projectCodes !== undefined
+    ? updates.projectCodes
+    : parseProjectCodes(apiKey.projectCodes)
+
   await prisma.apiKey.update({
     where: { id: apiKeyId },
     data: {
       name: updates.name ?? apiKey.name,
-      scopes: updates.scopes ?? (apiKey.scopes as Prisma.InputJsonValue),
-      projectCodes: updates.projectCodes !== undefined
-        ? updates.projectCodes === null ? Prisma.JsonNull : updates.projectCodes
-        : apiKey.projectCodes === null ? Prisma.JsonNull : (apiKey.projectCodes as Prisma.InputJsonValue),
+      scopes: scopesValue as never,
+      projectCodes: projectCodesValue as never,
       rateLimit: updates.rateLimit ?? apiKey.rateLimit,
       expiresAt: updates.expiresAt !== undefined ? updates.expiresAt : apiKey.expiresAt,
     },
