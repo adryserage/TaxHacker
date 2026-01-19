@@ -1,9 +1,10 @@
 import { FormSelectCurrency } from "@/components/forms/select-currency"
-import { FormAvatar, FormInput, FormTextarea } from "@/components/forms/simple"
+import { FormAvatar, FormInput, FormSelect, FormTextarea } from "@/components/forms/simple"
 import { Button } from "@/components/ui/button"
+import { CANADIAN_PROVINCES, isValidProvinceCode, type ProvinceCode } from "@/lib/canadian-taxes"
 import { formatCurrency } from "@/lib/utils"
-import { Currency } from "@/prisma/client"
-import { X } from "lucide-react"
+import { Currency, Project } from "@/prisma/client"
+import { MapPin, X } from "lucide-react"
 import { InputHTMLAttributes, memo, useCallback, useMemo } from "react"
 
 export interface InvoiceItem {
@@ -51,12 +52,16 @@ export interface InvoiceFormData {
   subtotalLabel: string
   summarySubtotalLabel: string
   summaryTotalLabel: string
+  // Canadian SaaS fields
+  projectCode?: string | null
 }
 
 interface InvoicePageProps {
   invoiceData: InvoiceFormData
   dispatch: React.Dispatch<any>
   currencies: Currency[]
+  projects: Project[]
+  onApplyProvincialTaxes: (projectCode: string) => void
 }
 
 // Memoized row for invoice items
@@ -237,7 +242,7 @@ const FeeRow = memo(function FeeRow({
   )
 })
 
-export function InvoicePage({ invoiceData, dispatch, currencies }: InvoicePageProps) {
+export function InvoicePage({ invoiceData, dispatch, currencies, projects, onApplyProvincialTaxes }: InvoicePageProps) {
   const addItem = useCallback(() => dispatch({ type: "ADD_ITEM" }), [dispatch])
   const removeItem = useCallback((index: number) => dispatch({ type: "REMOVE_ITEM", index }), [dispatch])
   const updateItem = useCallback(
@@ -275,6 +280,25 @@ export function InvoicePage({ invoiceData, dispatch, currencies }: InvoicePagePr
     () => (invoiceData.taxIncluded ? subtotal : subtotal + taxes) + fees,
     [invoiceData.taxIncluded, subtotal, taxes, fees]
   )
+
+  // Project selector items
+  const projectItems = useMemo(
+    () => projects.map((p) => ({ code: p.code, name: p.name })),
+    [projects]
+  )
+
+  // Get selected project and its province info
+  const selectedProject = useMemo(
+    () => projects.find((p) => p.code === invoiceData.projectCode),
+    [projects, invoiceData.projectCode]
+  )
+
+  const provinceInfo = useMemo(() => {
+    if (!selectedProject?.province || !isValidProvinceCode(selectedProject.province)) {
+      return null
+    }
+    return CANADIAN_PROVINCES[selectedProject.province as ProvinceCode]
+  }, [selectedProject])
 
   return (
     <div className="relative w-full max-w-[794px] sm:w-[794px] min-h-[297mm] bg-white shadow-lg p-2 sm:p-8 mb-8">
@@ -386,7 +410,18 @@ export function InvoicePage({ invoiceData, dispatch, currencies }: InvoicePagePr
           </div>
         </div>
 
-        <div className="w-full sm:w-auto flex justify-end">
+        <div className="w-full sm:w-auto flex flex-col sm:flex-row gap-2 justify-end">
+          {projects.length > 0 && (
+            <FormSelect
+              title=""
+              name="projectCode"
+              items={projectItems}
+              placeholder="Select Company"
+              defaultValue={invoiceData.projectCode ?? undefined}
+              onValueChange={(value) => dispatch({ type: "UPDATE_FIELD", field: "projectCode", value })}
+              emptyValue="No Company"
+            />
+          )}
           <FormSelectCurrency
             currencies={currencies}
             value={invoiceData.currency}
@@ -394,6 +429,27 @@ export function InvoicePage({ invoiceData, dispatch, currencies }: InvoicePagePr
           />
         </div>
       </div>
+
+      {/* Canadian Tax Notice */}
+      {selectedProject?.province && provinceInfo && (
+        <div className="relative mb-4 flex items-center justify-between gap-2 p-3 bg-blue-50 rounded-lg border border-blue-200">
+          <div className="flex items-center gap-2 text-sm text-blue-800">
+            <MapPin className="h-4 w-4" />
+            <span>
+              Company: <strong>{selectedProject.businessName || selectedProject.name}</strong> ({provinceInfo.name})
+            </span>
+          </div>
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            className="text-blue-700 border-blue-300 hover:bg-blue-100"
+            onClick={() => invoiceData.projectCode && onApplyProvincialTaxes(invoiceData.projectCode)}
+          >
+            Apply {provinceInfo.taxType === "HST" ? "HST" : provinceInfo.taxType === "GST+QST" ? "GST+QST" : "GST/PST"} Taxes
+          </Button>
+        </div>
+      )}
 
       {/* Items Section - Refactored to use only flex divs */}
       <div className="mb-8">

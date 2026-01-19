@@ -1,6 +1,7 @@
 import { getCurrentUser } from "@/lib/auth"
 import { getAppData } from "@/models/apps"
 import { getCurrencies } from "@/models/currencies"
+import { getProjects } from "@/models/projects"
 import { getSettings } from "@/models/settings"
 import { InvoiceGenerator } from "./components/invoice-generator"
 import { InvoiceTemplate } from "./default-templates"
@@ -14,6 +15,7 @@ export default async function InvoicesApp() {
   const user = await getCurrentUser()
   const settings = await getSettings(user.id)
   const currencies = await getCurrencies(user.id)
+  const projects = await getProjects(user.id)
   const appData = await getAppData<InvoiceAppData>(user, "invoices")
 
   return (
@@ -25,7 +27,7 @@ export default async function InvoicesApp() {
           </span>
         </h2>
       </header>
-      <InvoiceGenerator user={user} settings={settings} currencies={currencies} appData={appData} />
+      <InvoiceGenerator user={user} settings={settings} currencies={currencies} projects={projects} appData={appData} />
     </div>
   )
 }

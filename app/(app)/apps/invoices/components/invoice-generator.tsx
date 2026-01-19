@@ -2,12 +2,17 @@
 
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import {
+  CANADIAN_PROVINCES,
+  isValidProvinceCode,
+  type ProvinceCode,
+} from "@/lib/canadian-taxes"
 import { fetchAsBase64 } from "@/lib/utils"
 import { SettingsMap } from "@/models/settings"
-import { Currency, User } from "@/prisma/client"
+import { Currency, Project, User } from "@/prisma/client"
 import { FileDown, Loader2, Save, TextSelect, X } from "lucide-react"
 import { useRouter } from "next/navigation"
-import { startTransition, useMemo, useReducer, useState } from "react"
+import { startTransition, useCallback, useMemo, useReducer, useState } from "react"
 import {
   addNewTemplateAction,
   deleteTemplateAction,
@@ -16,7 +21,7 @@ import {
 } from "../actions"
 import defaultTemplates, { InvoiceTemplate } from "../default-templates"
 import { InvoiceAppData } from "../page"
-import { InvoiceFormData, InvoicePage } from "./invoice-page"
+import { AdditionalTax, InvoiceFormData, InvoicePage } from "./invoice-page"
 
 function invoiceFormReducer(state: InvoiceFormData, action: any): InvoiceFormData {
   switch (action.type) {
@@ -64,6 +69,11 @@ function invoiceFormReducer(state: InvoiceFormData, action: any): InvoiceFormDat
     }
     case "REMOVE_FEE":
       return { ...state, additionalFees: state.additionalFees.filter((_, i) => i !== action.index) }
+    case "APPLY_PROVINCIAL_TAXES": {
+      // Replace all taxes with provincial taxes based on the project's province
+      const { taxes } = action.payload as { taxes: AdditionalTax[] }
+      return { ...state, additionalTaxes: taxes, taxIncluded: false }
+    }
     default:
       return state
   }
@@ -73,16 +83,18 @@ export function InvoiceGenerator({
   user,
   settings,
   currencies,
+  projects,
   appData,
 }: {
   user: User
   settings: SettingsMap
   currencies: Currency[]
+  projects: Project[]
   appData: InvoiceAppData | null
 }) {
   const templates: InvoiceTemplate[] = useMemo(
-    () => [...defaultTemplates(user, settings), ...(appData?.templates || [])],
-    [appData]
+    () => [...defaultTemplates(user, settings, projects), ...(appData?.templates || [])],
+    [appData, user, settings, projects]
   )
 
   const [selectedTemplate, setSelectedTemplate] = useState<string>(templates[0].name)
@@ -213,6 +225,70 @@ export function InvoiceGenerator({
     }
   }
 
+  // Apply provincial taxes based on the selected project's province
+  const handleApplyProvincialTaxes = useCallback(
+    (projectCode: string) => {
+      const project = projects.find((p) => p.code === projectCode)
+      if (!project?.province || !isValidProvinceCode(project.province)) {
+        alert("Please select a company with a configured province first.")
+        return
+      }
+
+      const provinceConfig = CANADIAN_PROVINCES[project.province as ProvinceCode]
+      const subtotal = formData.items.reduce((sum, item) => sum + item.subtotal, 0)
+      const taxes: AdditionalTax[] = []
+
+      switch (provinceConfig.taxType) {
+        case "HST":
+          taxes.push({
+            name: "HST",
+            rate: provinceConfig.hstRate!,
+            amount: (subtotal * provinceConfig.hstRate!) / 100,
+          })
+          break
+        case "GST+PST":
+          taxes.push({
+            name: "GST",
+            rate: provinceConfig.gstRate!,
+            amount: (subtotal * provinceConfig.gstRate!) / 100,
+          })
+          if (provinceConfig.pstRate! > 0) {
+            taxes.push({
+              name: "PST",
+              rate: provinceConfig.pstRate!,
+              amount: (subtotal * provinceConfig.pstRate!) / 100,
+            })
+          }
+          break
+        case "GST+QST":
+          // Quebec: QST is calculated on GST-inclusive amount
+          const gstAmount = (subtotal * provinceConfig.gstRate!) / 100
+          taxes.push({
+            name: "GST/TPS",
+            rate: provinceConfig.gstRate!,
+            amount: gstAmount,
+          })
+          const gstInclusiveAmount = subtotal + gstAmount
+          taxes.push({
+            name: "QST/TVQ",
+            rate: provinceConfig.qstRate!,
+            amount: (gstInclusiveAmount * provinceConfig.qstRate!) / 100,
+          })
+          break
+        case "GST_ONLY":
+          taxes.push({
+            name: "GST",
+            rate: provinceConfig.gstRate!,
+            amount: (subtotal * provinceConfig.gstRate!) / 100,
+          })
+          break
+      }
+
+      dispatch({ type: "APPLY_PROVINCIAL_TAXES", payload: { taxes } })
+    },
+    [projects, formData.items, dispatch]
+  )
+
   return (
     <div className="flex flex-col gap-6">
       {/* Templates Section */}
@@ -244,7 +320,13 @@ export function InvoiceGenerator({
       </div>
 
       <div className="flex flex-row flex-wrap justify-start items-start gap-4">
-        <InvoicePage invoiceData={formData} dispatch={dispatch} currencies={currencies} />
+        <InvoicePage
+          invoiceData={formData}
+          dispatch={dispatch}
+          currencies={currencies}
+          projects={projects}
+          onApplyProvincialTaxes={handleApplyProvincialTaxes}
+        />
 
         {/* Generate PDF Button */}
         <div className="flex flex-col gap-4">
