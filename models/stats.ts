@@ -22,6 +22,10 @@ export const getDashboardStats = cache(
       }
     }
 
+    if (filters.projectCode) {
+      where.projectCode = filters.projectCode
+    }
+
     const transactions = await prisma.transaction.findMany({ where: { ...where, userId } })
     const totalIncomePerCurrency = calcTotalPerCurrency(transactions.filter((t) => t.type === "income"))
     const totalExpensesPerCurrency = calcTotalPerCurrency(transactions.filter((t) => t.type === "expense"))

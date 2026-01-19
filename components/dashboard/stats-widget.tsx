@@ -13,15 +13,24 @@ import Link from "next/link"
 
 export async function StatsWidget({ filters }: { filters: TransactionFilters }) {
   const user = await getCurrentUser()
-  const projects = await getProjects(user.id)
+  const allProjects = await getProjects(user.id)
   const settings = await getSettings(user.id)
   const defaultCurrency = settings.default_currency || "EUR"
+
+  // Filter projects to display based on projectCode filter
+  const filteredProjects = filters.projectCode
+    ? allProjects.filter((p) => p.code === filters.projectCode)
+    : allProjects
+
+  const selectedProject = filters.projectCode
+    ? allProjects.find((p) => p.code === filters.projectCode)
+    : null
 
   const stats = await getDashboardStats(user.id, filters)
   const statsTimeSeries = await getDetailedTimeSeriesStats(user.id, filters, defaultCurrency)
   const statsPerProject = Object.fromEntries(
     await Promise.all(
-      projects.map((project) => getProjectStats(user.id, project.code, filters).then((stats) => [project.code, stats]))
+      filteredProjects.map((project) => getProjectStats(user.id, project.code, filters).then((stats) => [project.code, stats]))
     )
   )
 
@@ -30,7 +39,7 @@ export async function StatsWidget({ filters }: { filters: TransactionFilters }) 
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold">Overview</h2>
 
-        <FiltersWidget defaultFilters={filters} defaultRange="last-12-months" />
+        <FiltersWidget defaultFilters={filters} defaultRange="last-12-months" projects={allProjects} />
       </div>
 
       {statsTimeSeries.length > 0 && <IncomeExpenseGraph data={statsTimeSeries} defaultCurrency={defaultCurrency} />}
@@ -105,10 +114,12 @@ export async function StatsWidget({ filters }: { filters: TransactionFilters }) 
       </div>
 
       <div>
-        <h2 className="text-2xl font-bold">Projects</h2>
+        <h2 className="text-2xl font-bold">
+          {selectedProject ? (selectedProject.businessName || selectedProject.name) : "Projects"}
+        </h2>
       </div>
 
-      <ProjectsWidget projects={projects} statsPerProject={statsPerProject} />
+      <ProjectsWidget projects={filteredProjects} statsPerProject={statsPerProject} />
     </div>
   )
 }
