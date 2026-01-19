@@ -1,9 +1,11 @@
 import { getCurrentUser } from "@/lib/auth"
 import { fileExists, fullPathForFile } from "@/lib/files"
+import { codeFromName } from "@/lib/utils"
 import { EXPORT_AND_IMPORT_FIELD_MAP, ExportFields, ExportFilters } from "@/models/export_and_import"
 import { getFields } from "@/models/fields"
 import { getFilesByTransactionId } from "@/models/files"
 import { updateProgress } from "@/models/progress"
+import { getProjectByCode } from "@/models/projects"
 import { getTransactions } from "@/models/transactions"
 import { format } from "@fast-csv/format"
 import { formatDate } from "date-fns"
@@ -27,6 +29,20 @@ export async function GET(request: Request) {
   const user = await getCurrentUser()
   const { transactions } = await getTransactions(user.id, filters)
   const existingFields = await getFields(user.id)
+
+  // Generate export filename with project/company name and date range
+  const project = filters.projectCode ? await getProjectByCode(user.id, filters.projectCode) : null
+  const baseFilename = project
+    ? codeFromName(project.businessName || project.name)
+    : "transactions"
+  const dateRange = filters.dateFrom && filters.dateTo
+    ? `_${filters.dateFrom}_to_${filters.dateTo}`
+    : filters.dateFrom
+      ? `_from_${filters.dateFrom}`
+      : filters.dateTo
+        ? `_to_${filters.dateTo}`
+        : ""
+  const exportFilename = `${baseFilename}${dateRange}`
 
   try {
     const fieldKeys = fields.filter((field) => existingFields.some((f) => f.code === field))
@@ -72,7 +88,7 @@ export async function GET(request: Request) {
       return new NextResponse(stream as any, {
         headers: {
           "Content-Type": "text/csv",
-          "Content-Disposition": `attachment; filename="transactions.csv"`,
+          "Content-Disposition": `attachment; filename="${exportFilename}.csv"`,
         },
       })
     }
@@ -88,7 +104,7 @@ export async function GET(request: Request) {
       })
       csvStream.on("end", () => resolve(content))
     })
-    zip.file("transactions.csv", csvContent)
+    zip.file(`${exportFilename}.csv`, csvContent)
 
     // Process files in chunks
     const filesFolder = zip.folder("files")
@@ -178,7 +194,7 @@ export async function GET(request: Request) {
     return new NextResponse(zipContent, {
       headers: {
         "Content-Type": "application/zip",
-        "Content-Disposition": `attachment; filename="transactions.zip"`,
+        "Content-Disposition": `attachment; filename="${exportFilename}.zip"`,
       },
     })
   } catch (error) {
