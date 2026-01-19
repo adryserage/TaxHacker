@@ -44,3 +44,23 @@ export const fieldFormSchema = z.object({
   isVisibleInAnalysis: z.boolean().optional(),
   isRequired: z.boolean().optional(),
 })
+
+// Project Business Details (Canadian SaaS)
+export const projectBusinessFormSchema = z.object({
+  // Business Details
+  businessName: z.string().max(256).nullable().optional(),
+  businessAddress: z.string().max(1024).nullable().optional(),
+  businessBankDetails: z.string().max(1024).nullable().optional(),
+  businessLogo: z.string().max(512).nullable().optional(),
+  headOfficeAddress: z.string().max(1024).nullable().optional(),
+  billingAddress: z.string().max(1024).nullable().optional(),
+
+  // Canadian Tax Configuration
+  province: z.string().max(2).nullable().optional(), // Province code: "ON", "QC", etc.
+  taxNumber: z.string().max(32).nullable().optional(), // GST/HST number
+  provinceQstNumber: z.string().max(32).nullable().optional(), // QST number (Quebec only)
+
+  // Financial Settings
+  defaultCurrency: z.string().max(3).default("CAD"),
+  fiscalYearStart: z.string().max(5).nullable().optional(), // "MM-DD" format
+})

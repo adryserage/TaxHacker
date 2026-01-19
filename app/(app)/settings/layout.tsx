@@ -1,5 +1,6 @@
 import { SideNav } from "@/components/settings/side-nav"
 import { Separator } from "@/components/ui/separator"
+import config from "@/lib/config"
 import { Metadata } from "next"
 
 export const metadata: Metadata = {
@@ -7,7 +8,7 @@ export const metadata: Metadata = {
   description: "Customize your settings here",
 }
 
-const settingsCategories = [
+const baseSettingsCategories = [
   {
     title: "General",
     href: "/settings",
@@ -20,10 +21,15 @@ const settingsCategories = [
     title: "Business Details",
     href: "/settings/business",
   },
-  {
-    title: "LLM settings",
-    href: "/settings/llm",
-  },
+]
+
+// LLM settings only shown in self-hosted mode
+const llmCategory = {
+  title: "LLM settings",
+  href: "/settings/llm",
+}
+
+const additionalCategories = [
   {
     title: "Fields",
     href: "/settings/fields",
@@ -51,6 +57,13 @@ const settingsCategories = [
 ]
 
 export default function SettingsLayout({ children }: { children: React.ReactNode }) {
+  // Build settings categories based on mode
+  const settingsCategories = [
+    ...baseSettingsCategories,
+    ...(config.selfHosted.isEnabled ? [llmCategory] : []),
+    ...additionalCategories,
+  ]
+
   return (
     <>
       <div className="space-y-6 p-10 pb-16">

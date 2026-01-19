@@ -4,6 +4,7 @@ import {
   categoryFormSchema,
   currencyFormSchema,
   fieldFormSchema,
+  projectBusinessFormSchema,
   projectFormSchema,
   settingsFormSchema,
 } from "@/forms/settings"
@@ -18,7 +19,8 @@ import { createField, deleteField, updateField, updateFieldOrders } from "@/mode
 import { createProject, deleteProject, updateProject } from "@/models/projects"
 import { SettingsMap, updateSettings } from "@/models/settings"
 import { updateUser } from "@/models/users"
-import { Prisma, User } from "@/prisma/client"
+import { Prisma, Project, User } from "@/prisma/client"
+import { getProjectByCode } from "@/models/projects"
 import { revalidatePath } from "next/cache"
 import path from "path"
 
@@ -141,6 +143,71 @@ export async function deleteProjectAction(userId: string, code: string) {
   }
   revalidatePath("/settings/projects")
   return { success: true }
+}
+
+export async function saveProjectBusinessAction(
+  _prevState: ActionState<Project> | null,
+  formData: FormData
+): Promise<ActionState<Project>> {
+  const user = await getCurrentUser()
+  const code = formData.get("code") as string
+
+  if (!code) {
+    return { success: false, error: "Project code is required" }
+  }
+
+  // Verify project belongs to user
+  const existingProject = await getProjectByCode(user.id, code)
+  if (!existingProject) {
+    return { success: false, error: "Project not found" }
+  }
+
+  const validatedForm = projectBusinessFormSchema.safeParse(Object.fromEntries(formData))
+
+  if (!validatedForm.success) {
+    return { success: false, error: validatedForm.error.message }
+  }
+
+  // Upload business logo if provided
+  let businessLogoUrl = existingProject.businessLogo
+  const businessLogoFile = formData.get("businessLogo")
+  if (
+    businessLogoFile &&
+    typeof businessLogoFile === "object" &&
+    "size" in businessLogoFile &&
+    (businessLogoFile as Blob).size > 0
+  ) {
+    try {
+      const uploadedLogoPath = await uploadStaticImage(
+        user,
+        businessLogoFile,
+        `project-${code}-logo.png`,
+        500,
+        500
+      )
+      businessLogoUrl = `/files/static/${path.basename(uploadedLogoPath)}`
+    } catch (error) {
+      return { success: false, error: "Failed to upload business logo: " + error }
+    }
+  }
+
+  const project = await updateProject(user.id, code, {
+    businessName: validatedForm.data.businessName,
+    businessAddress: validatedForm.data.businessAddress,
+    businessBankDetails: validatedForm.data.businessBankDetails,
+    businessLogo: businessLogoUrl,
+    headOfficeAddress: validatedForm.data.headOfficeAddress,
+    billingAddress: validatedForm.data.billingAddress,
+    province: validatedForm.data.province,
+    taxNumber: validatedForm.data.taxNumber,
+    provinceQstNumber: validatedForm.data.provinceQstNumber,
+    defaultCurrency: validatedForm.data.defaultCurrency,
+    fiscalYearStart: validatedForm.data.fiscalYearStart,
+  })
+
+  revalidatePath(`/settings/projects/${code}`)
+  revalidatePath("/settings/projects")
+  return { success: true, data: project }
 }
 
 export async function addCurrencyAction(userId: string, data: Prisma.CurrencyCreateInput) {

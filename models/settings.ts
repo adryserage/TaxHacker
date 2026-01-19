@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db"
 import { PROVIDERS } from "@/lib/llm-providers"
+import config from "@/lib/config"
 import { cache } from "react"
 import { LLMProvider } from "@/ai/providers/llmProvider"
 
@@ -7,8 +8,41 @@ export type SettingsMap = Record<string, string>
 
 /**
  * Helper to extract LLM provider settings from SettingsMap.
+ *
+ * In cloud mode (selfHosted.isEnabled = false), uses centralized API keys from environment.
+ * In self-hosted mode, uses user-provided API keys from settings.
  */
 export function getLLMSettings(settings: SettingsMap) {
+  // Cloud mode: use centralized ENV keys
+  if (!config.selfHosted.isEnabled) {
+    const cloudProviders = [
+      config.ai.googleApiKey
+        ? {
+            provider: "google" as LLMProvider,
+            apiKey: config.ai.googleApiKey,
+            model: config.ai.googleModelName,
+          }
+        : null,
+      config.ai.openaiApiKey
+        ? {
+            provider: "openai" as LLMProvider,
+            apiKey: config.ai.openaiApiKey,
+            model: config.ai.openaiModelName,
+          }
+        : null,
+      config.ai.mistralApiKey
+        ? {
+            provider: "mistral" as LLMProvider,
+            apiKey: config.ai.mistralApiKey,
+            model: config.ai.mistralModelName,
+          }
+        : null,
+    ].filter((p): p is NonNullable<typeof p> => p !== null)
+
+    return { providers: cloudProviders }
+  }
+
+  // Self-hosted mode: use user settings
   const priorities = (settings.llm_providers || "openai,google,mistral").split(",").map(p => p.trim()).filter(Boolean)
 
   const providers = priorities.map((provider) => {

@@ -132,6 +132,23 @@ model Project {
   transactions Transaction[]
   createdAt    DateTime      @default(now()) @map("created_at")
 
+  // Business Details (Company Information)
+  businessName        String?  @map("business_name")
+  businessAddress     String?  @map("business_address")
+  businessBankDetails String?  @map("business_bank_details")
+  businessLogo        String?  @map("business_logo")
+  headOfficeAddress   String?  @map("head_office_address")
+  billingAddress      String?  @map("billing_address")
+
+  // Canadian Tax Configuration
+  province          String?  // "ON", "QC", "BC", etc.
+  taxNumber         String?  @map("tax_number")          // GST/HST number
+  provinceQstNumber String?  @map("province_qst_number") // QST (Quebec only)
+
+  // Financial Settings
+  defaultCurrency String  @default("CAD") @map("default_currency")
+  fiscalYearStart String? @map("fiscal_year_start") // "MM-DD" format
+
   @@unique([userId, code])
   @@map("projects")
 }
