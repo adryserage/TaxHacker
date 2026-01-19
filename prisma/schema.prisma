@@ -44,6 +44,8 @@ model User {
   // Team relationships
   teamOwned           TeamMember[]  @relation("TeamOwner")   // Teams this user owns
   teamMemberships     TeamMember[]  @relation("TeamMember")  // Teams this user is a member of
+  // API Keys
+  apiKeys             ApiKey[]
 
   @@map("users")
 }
@@ -326,4 +328,33 @@ model TeamMember {
   @@index([memberId])
   @@index([ownerId])
   @@map("team_members")
+}
+
+// API Key model for public REST API access
+model ApiKey {
+  id          String    @id @default(uuid()) @db.Uuid
+  userId      String    @map("user_id") @db.Uuid
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // Key details
+  name        String    // User-defined name for the key
+  keyHash     String    @unique @map("key_hash") // SHA256 hash of the actual key
+  keyPrefix   String    @map("key_prefix") // First 8 chars for identification (e.g., "th_live_")
+  // Permissions and scope
+  scopes      Json      @default("[]") // Array of allowed scopes: ["transactions:read", "projects:read", etc.]
+  projectCodes Json?    @map("project_codes") // Optional: restrict to specific projects
+  // Usage tracking
+  lastUsedAt  DateTime? @map("last_used_at")
+  usageCount  Int       @default(0) @map("usage_count")
+  // Rate limiting
+  rateLimit   Int       @default(1000) @map("rate_limit") // Requests per hour
+  // Status
+  isActive    Boolean   @default(true) @map("is_active")
+  expiresAt   DateTime? @map("expires_at") // Optional expiration
+  // Timestamps
+  createdAt   DateTime  @default(now()) @map("created_at")
+  revokedAt   DateTime? @map("revoked_at")
+
+  @@index([userId])
+  @@index([keyHash])
+  @@map("api_keys")
 }

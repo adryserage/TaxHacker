@@ -25,6 +25,10 @@ const baseSettingsCategories = [
     title: "Team",
     href: "/settings/team",
   },
+  {
+    title: "API Keys",
+    href: "/settings/api-keys",
+  },
 ]
 
 // LLM settings only shown in self-hosted mode
