@@ -1,6 +1,5 @@
 import { NextRequest } from "next/server"
 import { prisma } from "@/lib/db"
-import { Prisma } from "@/prisma/client"
 import {
   withApiAuth,
   apiResponse,
@@ -159,7 +158,7 @@ export const POST = withApiAuth(
       }
     }
 
-    // Create transaction
+    // Create transaction - use 'as never' to handle both PostgreSQL (Json) and SQLite (String)
     const transaction = await prisma.transaction.create({
       data: {
         userId,
@@ -172,9 +171,9 @@ export const POST = withApiAuth(
         categoryCode: data.categoryCode,
         projectCode: data.projectCode,
         issuedAt: data.issuedAt ? new Date(data.issuedAt) : null,
-        items: data.items ?? [],
+        items: (data.items ?? []) as never,
         note: data.note,
-        extra: data.extra as Prisma.InputJsonValue | undefined,
+        extra: data.extra as never,
       },
     })
 

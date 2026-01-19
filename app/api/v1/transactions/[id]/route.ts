@@ -1,6 +1,5 @@
 import { NextRequest } from "next/server"
 import { prisma } from "@/lib/db"
-import { Prisma } from "@/prisma/client"
 import {
   withApiAuth,
   apiResponse,
@@ -123,7 +122,10 @@ export const PUT = (request: NextRequest, { params }: Params) =>
         }
       }
 
-      // Update
+      // Update - handle JSON fields for both PostgreSQL (Json type) and SQLite (String type)
+      const itemsValue = data.items !== undefined ? data.items : existing.items
+      const extraValue = data.extra !== undefined ? data.extra : existing.extra
+
       const updated = await prisma.transaction.update({
         where: { id },
         data: {
@@ -138,11 +140,9 @@ export const PUT = (request: NextRequest, { params }: Params) =>
           issuedAt: data.issuedAt !== undefined
             ? data.issuedAt ? new Date(data.issuedAt) : null
             : existing.issuedAt,
-          items: data.items ?? (existing.items === null ? Prisma.JsonNull : (existing.items as Prisma.InputJsonValue)),
+          items: itemsValue as never,
           note: data.note !== undefined ? data.note : existing.note,
-          extra: data.extra !== undefined
-            ? data.extra === null ? Prisma.JsonNull : (data.extra as Prisma.InputJsonValue)
-            : existing.extra === null ? Prisma.JsonNull : (existing.extra as Prisma.InputJsonValue),
+          extra: extraValue as never,
         },
       })
 
