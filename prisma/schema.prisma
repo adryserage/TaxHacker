@@ -46,6 +46,8 @@ model User {
   teamMemberships     TeamMember[]  @relation("TeamMember")  // Teams this user is a member of
   // API Keys
   apiKeys             ApiKey[]
+  // Bank Accounts
+  bankAccounts        BankAccount[]
 
   @@map("users")
 }
@@ -357,4 +359,35 @@ model ApiKey {
   @@index([userId])
   @@index([keyHash])
   @@map("api_keys")
+}
+
+// Connected bank account via Plaid
+model BankAccount {
+  id              String    @id @default(uuid()) @db.Uuid
+  userId          String    @map("user_id") @db.Uuid
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // Plaid identifiers
+  plaidItemId     String    @map("plaid_item_id")
+  plaidAccountId  String    @map("plaid_account_id")
+  accessToken     String    @map("access_token") // Encrypted
+  // Account details
+  institutionId   String?   @map("institution_id")
+  institutionName String?   @map("institution_name")
+  accountName     String    @map("account_name")
+  accountType     String    @map("account_type") // depository, credit, etc.
+  accountSubtype  String?   @map("account_subtype") // checking, savings, etc.
+  accountMask     String?   @map("account_mask") // Last 4 digits
+  currencyCode    String    @default("CAD") @map("currency_code")
+  // Status
+  isActive        Boolean   @default(true) @map("is_active")
+  lastSyncedAt    DateTime? @map("last_synced_at")
+  errorMessage    String?   @map("error_message")
+  // Timestamps
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  @@unique([userId, plaidAccountId])
+  @@index([userId])
+  @@index([plaidItemId])
+  @@map("bank_accounts")
 }

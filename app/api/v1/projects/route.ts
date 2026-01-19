@@ -7,7 +7,7 @@ import {
   getPaginationParams,
   ApiContext,
 } from "@/lib/api-auth"
-import { hasScope, hasProjectAccess } from "@/models/api-keys"
+import { hasScope } from "@/models/api-keys"
 import { z } from "zod"
 
 // GET /api/v1/projects - List projects

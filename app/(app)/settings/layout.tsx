@@ -29,6 +29,10 @@ const baseSettingsCategories = [
     title: "API Keys",
     href: "/settings/api-keys",
   },
+  {
+    title: "Bank Accounts",
+    href: "/settings/bank-accounts",
+  },
 ]
 
 // LLM settings only shown in self-hosted mode
