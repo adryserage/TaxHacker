@@ -41,6 +41,13 @@ model User {
   appData             AppData[]
   progress            Progress[]
   bankStatements      BankStatement[]
+  // Team relationships
+  teamOwned           TeamMember[]  @relation("TeamOwner")
+  teamMemberships     TeamMember[]  @relation("TeamMember")
+  // API Keys
+  apiKeys             ApiKey[]
+  // Bank Accounts
+  bankAccounts        BankAccount[]
 
   @@map("users")
 }
@@ -131,6 +138,23 @@ model Project {
   llm_prompt   String?
   transactions Transaction[]
   createdAt    DateTime      @default(now()) @map("created_at")
+
+  // Business Details (Company Information)
+  businessName        String?  @map("business_name")
+  businessAddress     String?  @map("business_address")
+  businessBankDetails String?  @map("business_bank_details")
+  businessLogo        String?  @map("business_logo")
+  headOfficeAddress   String?  @map("head_office_address")
+  billingAddress      String?  @map("billing_address")
+
+  // Canadian Tax Configuration
+  province          String?
+  taxNumber         String?  @map("tax_number")
+  provinceQstNumber String?  @map("province_qst_number")
+
+  // Financial Settings
+  defaultCurrency String  @default("CAD") @map("default_currency")
+  fiscalYearStart String? @map("fiscal_year_start")
 
   @@unique([userId, code])
   @@map("projects")
@@ -277,4 +301,73 @@ model BankStatement {
   @@index([userId])
   @@index([status])
   @@map("bank_statements")
+}
+
+// Team member model for multi-user access
+model TeamMember {
+  id         String    @id @default(uuid())
+  ownerId    String    @map("owner_id")
+  owner      User      @relation("TeamOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  memberId   String    @map("member_id")
+  member     User      @relation("TeamMember", fields: [memberId], references: [id], onDelete: Cascade)
+  role       String    @default("viewer")
+  projectCodes String? @map("project_codes")
+  status     String    @default("pending")
+  invitedAt  DateTime  @default(now()) @map("invited_at")
+  acceptedAt DateTime? @map("accepted_at")
+
+  @@unique([ownerId, memberId])
+  @@index([memberId])
+  @@index([ownerId])
+  @@map("team_members")
+}
+
+// API Key model for public REST API access
+model ApiKey {
+  id          String    @id @default(uuid())
+  userId      String    @map("user_id")
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name        String
+  keyHash     String    @unique @map("key_hash")
+  keyPrefix   String    @map("key_prefix")
+  scopes      String    @default("[]")
+  projectCodes String?  @map("project_codes")
+  lastUsedAt  DateTime? @map("last_used_at")
+  usageCount  Int       @default(0) @map("usage_count")
+  rateLimit   Int       @default(1000) @map("rate_limit")
+  isActive    Boolean   @default(true) @map("is_active")
+  expiresAt   DateTime? @map("expires_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  revokedAt   DateTime? @map("revoked_at")
+
+  @@index([userId])
+  @@index([keyHash])
+  @@map("api_keys")
+}
+
+// Connected bank account via Plaid
+model BankAccount {
+  id              String    @id @default(uuid())
+  userId          String    @map("user_id")
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plaidItemId     String    @map("plaid_item_id")
+  plaidAccountId  String    @map("plaid_account_id")
+  accessToken     String    @map("access_token")
+  institutionId   String?   @map("institution_id")
+  institutionName String?   @map("institution_name")
+  accountName     String    @map("account_name")
+  accountType     String    @map("account_type")
+  accountSubtype  String?   @map("account_subtype")
+  accountMask     String?   @map("account_mask")
+  currencyCode    String    @default("CAD") @map("currency_code")
+  isActive        Boolean   @default(true) @map("is_active")
+  lastSyncedAt    DateTime? @map("last_synced_at")
+  errorMessage    String?   @map("error_message")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  @@unique([userId, plaidAccountId])
+  @@index([userId])
+  @@index([plaidItemId])
+  @@map("bank_accounts")
 }
