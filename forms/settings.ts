@@ -51,7 +51,7 @@ export const projectBusinessFormSchema = z.object({
   businessName: z.string().max(256).nullable().optional(),
   businessAddress: z.string().max(1024).nullable().optional(),
   businessBankDetails: z.string().max(1024).nullable().optional(),
-  businessLogo: z.string().max(512).nullable().optional(),
+  businessLogo: z.string().max(500000).nullable().optional(), // Base64 images can be large
   headOfficeAddress: z.string().max(1024).nullable().optional(),
   billingAddress: z.string().max(1024).nullable().optional(),
 
