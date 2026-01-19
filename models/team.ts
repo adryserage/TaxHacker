@@ -1,7 +1,24 @@
 import { prisma } from "@/lib/db"
 import { isValidRole, TeamRole } from "@/lib/rbac"
-import { Prisma, TeamMember, User } from "@/prisma/client"
+import { TeamMember, User } from "@/prisma/client"
 import { cache } from "react"
+
+/**
+ * Parse projectCodes (handles both JSON string for SQLite and array for PostgreSQL)
+ */
+function parseProjectCodes(projectCodes: unknown): string[] | null {
+  if (!projectCodes) return null
+  if (Array.isArray(projectCodes)) return projectCodes as string[]
+  if (typeof projectCodes === "string") {
+    try {
+      const parsed = JSON.parse(projectCodes)
+      return Array.isArray(parsed) ? parsed : null
+    } catch {
+      return null
+    }
+  }
+  return null
+}
 
 export type TeamMemberWithUser = TeamMember & {
   member: Pick<User, "id" | "email" | "name" | "avatar">
@@ -132,13 +149,15 @@ export async function hasProjectAccess(
     return false
   }
 
+  // Parse projectCodes (handles SQLite string or PostgreSQL array)
+  const allowedProjects = parseProjectCodes(membership.projectCodes)
+
   // If projectCodes is null, user has access to all projects
-  if (membership.projectCodes === null) {
+  if (allowedProjects === null) {
     return true
   }
 
   // Check if project is in the allowed list
-  const allowedProjects = membership.projectCodes as string[]
   return allowedProjects.includes(projectCode)
 }
 
@@ -185,7 +204,7 @@ export async function inviteTeamMember(
         data: {
           status: "pending",
           role,
-          projectCodes: projectCodes ?? Prisma.JsonNull,
+          projectCodes: (projectCodes ?? null) as never,
           invitedAt: new Date(),
           acceptedAt: null,
         },
@@ -200,7 +219,7 @@ export async function inviteTeamMember(
       ownerId,
       memberId: member.id,
       role,
-      projectCodes: projectCodes ?? Prisma.JsonNull,
+      projectCodes: (projectCodes ?? null) as never,
       status: "pending",
     },
   })
@@ -291,18 +310,16 @@ export async function updateTeamMember(
     return { success: false, error: "Team member not found." }
   }
 
+  // Use 'as never' to handle both PostgreSQL (Json type) and SQLite (String type)
+  const projectCodesValue = updates.projectCodes !== undefined
+    ? updates.projectCodes
+    : parseProjectCodes(membership.projectCodes)
+
   await prisma.teamMember.update({
     where: { id: membership.id },
     data: {
       role: updates.role ?? membership.role,
-      projectCodes:
-        updates.projectCodes !== undefined
-          ? updates.projectCodes === null
-            ? Prisma.JsonNull
-            : updates.projectCodes
-          : membership.projectCodes === null
-            ? Prisma.JsonNull
-            : membership.projectCodes,
+      projectCodes: projectCodesValue as never,
     },
   })
 
