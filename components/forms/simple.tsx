@@ -234,13 +234,15 @@ export const FormAvatar = ({
   defaultValue,
   className,
   onChange,
+  name,
   ...props
 }: {
   title?: string
   defaultValue?: string
   className?: string
   onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void
-} & InputHTMLAttributes<HTMLInputElement>) => {
+  name?: string
+} & Omit<InputHTMLAttributes<HTMLInputElement>, "name">) => {
   const [preview, setPreview] = useState<string | null>(defaultValue || null)
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -262,6 +264,8 @@ export const FormAvatar = ({
   return (
     <label className="inline-block">
       {title && <span className="text-sm font-medium">{title}</span>}
+      {/* Hidden input to submit the base64 value */}
+      {name && <input type="hidden" name={name} value={preview || ""} />}
       <div className={cn("relative group", className)}>
         <div className="absolute inset-0 flex items-center justify-center bg-background rounded-lg overflow-hidden">
           {preview ? (
