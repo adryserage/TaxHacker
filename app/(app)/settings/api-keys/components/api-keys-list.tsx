@@ -25,6 +25,33 @@ interface ApiKeysListProps {
   projects: Project[]
 }
 
+// Helper to parse scopes (handles both JSON string and array)
+function parseScopes(scopes: unknown): ApiScope[] {
+  if (Array.isArray(scopes)) return scopes as ApiScope[]
+  if (typeof scopes === "string") {
+    try {
+      return JSON.parse(scopes) as ApiScope[]
+    } catch {
+      return []
+    }
+  }
+  return []
+}
+
+// Helper to parse projectCodes (handles both JSON string and array)
+function parseProjectCodes(projectCodes: unknown): string[] | null {
+  if (!projectCodes) return null
+  if (Array.isArray(projectCodes)) return projectCodes as string[]
+  if (typeof projectCodes === "string") {
+    try {
+      return JSON.parse(projectCodes) as string[]
+    } catch {
+      return null
+    }
+  }
+  return null
+}
+
 export function ApiKeysList({ apiKeys, projects }: ApiKeysListProps) {
   const [loadingId, setLoadingId] = useState<string | null>(null)
 
@@ -155,16 +182,16 @@ export function ApiKeysList({ apiKeys, projects }: ApiKeysListProps) {
           </div>
 
           <div className="flex flex-wrap gap-1">
-            {(key.scopes as ApiScope[]).map((scope) => (
+            {parseScopes(key.scopes).map((scope) => (
               <Badge key={scope} variant="outline" className="text-xs">
                 {API_SCOPES[scope] || scope}
               </Badge>
             ))}
           </div>
 
-          {key.projectCodes && (
+          {parseProjectCodes(key.projectCodes) && (
             <p className="text-xs text-muted-foreground">
-              Projects: {getProjectNames(key.projectCodes)}
+              Projects: {getProjectNames(parseProjectCodes(key.projectCodes))}
             </p>
           )}
 
