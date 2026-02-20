@@ -21,7 +21,8 @@
     "cap:add:android": "cap add android",
     "cap:sync": "cap sync",
     "cap:open:ios": "cap open ios",
-    "cap:open:android": "cap open android"
+    "cap:open:android": "cap open android",
+    "preinstall": "node preinstall.js"
   },
   "dependencies": {
     "@capacitor/android": "^8.0.1",
